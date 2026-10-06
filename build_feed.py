@@ -98,7 +98,7 @@ for f in sorted(glob.glob("/home/claude/feed/page*.json")):
 
 fields = list(rows[0].keys())
 # 18K-only feed = the main URL used by ChatGPT Ads (Oct 6: narrowed from full catalogue at Mo's request)
-gold = [r for r in rows if r["material"] == "18K gold plated"]
+gold = [r for r in rows if r["material"] == "18K gold plated" and r["availability"] == "in_stock"]  # Oct 6: out-of-stock excluded entirely so ChatGPT can never serve them
 def write(path, data, delim=","):
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields, delimiter=delim, quoting=csv.QUOTE_ALL if delim == "," else csv.QUOTE_MINIMAL)
@@ -106,5 +106,5 @@ def write(path, data, delim=","):
 write("/home/claude/feed/alphenik_chatgpt_feed.csv", gold)
 write("/home/claude/feed/alphenik_chatgpt_feed.tsv", gold, "\t")
 write("/home/claude/feed/alphenik_chatgpt_feed_full.csv", rows)
-instock = sum(1 for r in gold if r["availability"] == "in_stock")
-print(f"products={len(seen)} full_rows={len(rows)} gold_rows={len(gold)} gold_in_stock={instock} gold_out_of_stock={len(gold)-instock}")
+assert all(r["availability"] == "in_stock" for r in gold), "out-of-stock row leaked into gold feed"
+print(f"products={len(seen)} full_rows={len(rows)} gold_rows={len(gold)} gold_in_stock={len(gold)} gold_out_of_stock=0")
