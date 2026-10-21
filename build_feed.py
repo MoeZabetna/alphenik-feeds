@@ -41,6 +41,8 @@ for f in sorted(glob.glob("/home/claude/feed/page*.json")):
         url = p.get("onlineStoreUrl") or f"https://alphenik.com/products/{p['handle']}"
         if not p.get("onlineStoreUrl"):
             continue  # not published to Online Store
+        if "exclude-from-feed" in [t.lower() for t in p.get("tags", [])] or (p.get("productType") or "").lower() == "packaging":
+            continue  # add-ons like the gift box never go to ad feeds
         desc = strip_html(p.get("descriptionHtml"))
         if not desc:
             desc = f"{p['title']} by Alphenik. Free next-day delivery across the UAE. Pay in 4 with Tabby."
