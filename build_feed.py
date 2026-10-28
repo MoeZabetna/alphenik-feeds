@@ -30,14 +30,40 @@ def strip_html(s):
     s = re.sub(r"\s+", " ", s).strip()
     return s[:5000]
 
+def _media_url(m):
+    return (((m or {}).get("preview") or {}).get("image") or {}).get("url")
+
+def normalize(p):
+    """Map the Admin API 2026-10 shape (featuredMedia / media / barcodes / variant.media)
+    onto the legacy keys (featuredImage / images / barcode / variant.image) this script was written for.
+    Old-shape pages pass through untouched."""
+    if "featuredImage" not in p and "featuredMedia" in p:
+        u = _media_url(p.get("featuredMedia"))
+        p["featuredImage"] = {"url": u} if u else None
+    if "images" not in p and "media" in p:
+        urls = [_media_url(m) for m in (p.get("media") or {}).get("nodes", [])]
+        p["images"] = {"nodes": [{"url": u} for u in urls if u]}
+    for v in p.get("variants", {}).get("nodes", []):
+        if "barcode" not in v and "barcodes" in v:
+            bs = (v.get("barcodes") or {}).get("nodes", [])
+            v["barcode"] = bs[0].get("value") if bs else None
+        if "image" not in v and "media" in v:
+            ms = (v.get("media") or {}).get("nodes", [])
+            u = _media_url(ms[0]) if ms else None
+            v["image"] = {"url": u} if u else None
+    return p
+
 rows = []
 seen = set()
 for f in sorted(glob.glob("/home/claude/feed/page*.json")):
     data = json.load(open(f))
+    if "data" not in data and "products" in data:
+        data = {"data": data}
     for p in data["data"]["products"]["nodes"]:
         if p["id"] in seen:
             continue
         seen.add(p["id"])
+        p = normalize(p)
         url = p.get("onlineStoreUrl") or f"https://alphenik.com/products/{p['handle']}"
         if not p.get("onlineStoreUrl"):
             continue  # not published to Online Store
