@@ -41,7 +41,8 @@ def normalize(p):
         u = _media_url(p.get("featuredMedia"))
         p["featuredImage"] = {"url": u} if u else None
     if "images" not in p and "media" in p:
-        urls = [_media_url(m) for m in (p.get("media") or {}).get("nodes", [])]
+        urls = [_media_url(m) for m in (p.get("media") or {}).get("nodes", [])
+                if (m or {}).get("mediaContentType", "IMAGE") == "IMAGE"]  # skip video/3D thumbnails when the type is known
         p["images"] = {"nodes": [{"url": u} for u in urls if u]}
     for v in p.get("variants", {}).get("nodes", []):
         if "barcode" not in v and "barcodes" in v:
